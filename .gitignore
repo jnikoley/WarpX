@@ -70,3 +70,6 @@ cmake-build-*/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+#Python
+*.whl

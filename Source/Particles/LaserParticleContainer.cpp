@@ -136,6 +136,17 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies,
         return; // Disable laser if amplitude is 0
     }
 
+    // Update boundary conditions
+    const Geometry& geom = Geom(0);
+    const auto plo = geom.ProbLoArray();
+    const auto phi = geom.ProbHiArray();
+    m_boundary_conditions.SetBoundsX(ParticleBoundaryType::Absorbing,ParticleBoundaryType::Absorbing,
+                                    plo[0],phi[0]);
+    m_boundary_conditions.SetBoundsY(ParticleBoundaryType::Absorbing,ParticleBoundaryType::Absorbing,
+                                    plo[1],phi[1]);
+    m_boundary_conditions.SetBoundsZ(ParticleBoundaryType::Absorbing,ParticleBoundaryType::Absorbing,
+                                    plo[2],phi[2]);
+
     //Select laser profile
 
     //Check if someone uses the obsolete syntax

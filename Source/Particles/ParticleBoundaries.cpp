@@ -40,24 +40,30 @@ ParticleBoundaries::SetThermalVelocity (amrex::Real u_th)
 }
 
 void
-ParticleBoundaries::SetBoundsX (ParticleBoundaryType bc_lo, ParticleBoundaryType bc_hi)
+ParticleBoundaries::SetBoundsX (ParticleBoundaryType bc_lo, ParticleBoundaryType bc_hi, amrex::Real xmin, amrex::Real xmax)
 {
     data.xmin_bc = bc_lo;
     data.xmax_bc = bc_hi;
+    data.xmin = xmin;
+    data.xmax = xmax;
 }
 
 void
-ParticleBoundaries::SetBoundsY (ParticleBoundaryType bc_lo, ParticleBoundaryType bc_hi)
+ParticleBoundaries::SetBoundsY (ParticleBoundaryType bc_lo, ParticleBoundaryType bc_hi, amrex::Real xmin, amrex::Real xmax)
 {
     data.ymin_bc = bc_lo;
     data.ymax_bc = bc_hi;
+    data.ymin = xmin;
+    data.ymax = xmax;
 }
 
 void
-ParticleBoundaries::SetBoundsZ (ParticleBoundaryType bc_lo, ParticleBoundaryType bc_hi)
+ParticleBoundaries::SetBoundsZ (ParticleBoundaryType bc_lo, ParticleBoundaryType bc_hi, amrex::Real xmin, amrex::Real xmax)
 {
     data.zmin_bc = bc_lo;
     data.zmax_bc = bc_hi;
+    data.zmin = xmin;
+    data.zmax = xmax;
 }
 
 bool

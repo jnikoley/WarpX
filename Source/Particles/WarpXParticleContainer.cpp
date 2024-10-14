@@ -125,15 +125,21 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     // can allow these value to be overwritten if different boundary
     // conditions are desired for a specific species
 #ifndef WARPX_DIM_1D_Z
-    m_boundary_conditions.SetBoundsX(WarpX::particle_boundary_lo[0], WarpX::particle_boundary_hi[0]);
+    m_boundary_conditions.SetBoundsX(WarpX::particle_boundary_lo[0], WarpX::particle_boundary_hi[0],
+                                    WarpX::particle_boundary_pos_lo[0],WarpX::particle_boundary_pos_hi[0]);
+
 #endif
 #ifdef WARPX_DIM_3D
-    m_boundary_conditions.SetBoundsY(WarpX::particle_boundary_lo[1], WarpX::particle_boundary_hi[1]);
-    m_boundary_conditions.SetBoundsZ(WarpX::particle_boundary_lo[2], WarpX::particle_boundary_hi[2]);
+   m_boundary_conditions.SetBoundsY(WarpX::particle_boundary_lo[1], WarpX::particle_boundary_hi[1],
+                                    WarpX::particle_boundary_pos_lo[1],WarpX::particle_boundary_pos_hi[1]);
+    m_boundary_conditions.SetBoundsZ(WarpX::particle_boundary_lo[2], WarpX::particle_boundary_hi[2],
+                                    WarpX::particle_boundary_pos_lo[2],WarpX::particle_boundary_pos_hi[2]);
 #elif WARPX_DIM_XZ || WARPX_DIM_RZ
-    m_boundary_conditions.SetBoundsZ(WarpX::particle_boundary_lo[1], WarpX::particle_boundary_hi[1]);
+    m_boundary_conditions.SetBoundsZ(WarpX::particle_boundary_lo[1], WarpX::particle_boundary_hi[1],
+                                    WarpX::particle_boundary_pos_lo[1],WarpX::particle_boundary_pos_hi[1]);
 #else
-    m_boundary_conditions.SetBoundsZ(WarpX::particle_boundary_lo[0], WarpX::particle_boundary_hi[0]);
+    m_boundary_conditions.SetBoundsZ(WarpX::particle_boundary_lo[0], WarpX::particle_boundary_hi[0],
+                                    WarpX::particle_boundary_pos_lo[0],WarpX::particle_boundary_pos_hi[0]);
 #endif
     m_boundary_conditions.BuildReflectionModelParsers();
 }

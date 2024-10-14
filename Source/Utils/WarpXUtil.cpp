@@ -472,7 +472,8 @@ void CheckGriddingForRZSpectral ()
 
 void ReadBCParams ()
 {
-
+    amrex::Vector<amrex::Real> particle_B_pos_lo(AMREX_SPACEDIM,0);
+    amrex::Vector<amrex::Real> particle_B_pos_hi(AMREX_SPACEDIM,0);
     amrex::Vector<int> geom_periodicity(AMREX_SPACEDIM,0);
     ParmParse pp_geometry("geometry");
     const ParmParse pp_warpx("warpx");
@@ -495,6 +496,9 @@ void ReadBCParams ()
     // particle boundary may not be explicitly specified for some applications
     bool particle_boundary_specified = false;
     const ParmParse pp_boundary("boundary");
+    pp_boundary.queryarr("particle_pos_hi", particle_B_pos_hi, 0, AMREX_SPACEDIM);
+    pp_boundary.queryarr("particle_pos_lo", particle_B_pos_lo, 0, AMREX_SPACEDIM);
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         // Get field boundary type
         pp_boundary.query_enum_sloppy("field_lo",
@@ -510,6 +514,8 @@ void ReadBCParams ()
                                           WarpX::particle_boundary_hi[idim], "-_", idim)) {
             particle_boundary_specified = true;
         }
+        WarpX::particle_boundary_pos_lo[idim] = particle_B_pos_lo[idim];
+        WarpX::particle_boundary_pos_hi[idim] = particle_B_pos_hi[idim];
 
         if (WarpX::field_boundary_lo[idim] == FieldBoundaryType::Periodic ||
             WarpX::field_boundary_hi[idim] == FieldBoundaryType::Periodic ||

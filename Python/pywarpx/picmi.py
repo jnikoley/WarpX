@@ -916,6 +916,15 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
         self.blocking_factor = kw.pop("warpx_blocking_factor", None)
         self.blocking_factor_x = kw.pop("warpx_blocking_factor_x", None)
         self.blocking_factor_y = kw.pop("warpx_blocking_factor_y", None)
+        
+        self.lower_boundary_particles = kw.pop('warpx_lower_bound_particles',None)
+        if self.lower_boundary_particles is None:
+            self.lower_boundary_particles = self.lower_bound
+        self.upper_boundary_particles = kw.pop('warpx_upper_bound_particles',None)
+        if self.upper_boundary_particles is None:
+            self.upper_boundary_particles = self.upper_bound
+        pywarpx.boundary.add_new_attr('particle_pos_hi',self.upper_boundary_particles)
+        pywarpx.boundary.add_new_attr('particle_pos_lo',self.lower_boundary_particles)
 
         self.potential_xmin = kw.pop("warpx_potential_lo_r", None)
         self.potential_xmax = kw.pop("warpx_potential_hi_r", None)
@@ -969,6 +978,9 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
         ]
         pywarpx.boundary.particle_lo = self.lower_boundary_conditions_particles
         pywarpx.boundary.particle_hi = self.upper_boundary_conditions_particles
+        pywarpx.boundary.particle_pos_lo = self.lower_boundary_particles
+        pywarpx.boundary.particle_pos_hi = self.upper_boundary_particles
+
         pywarpx.boundary.reflect_all_velocities = self.reflect_all_velocities
 
         if self.thermal_boundary_u_th is not None:
@@ -1050,6 +1062,15 @@ class Cartesian1DGrid(picmistandard.PICMI_Cartesian1DGrid):
         self.max_grid_size_x = kw.pop("warpx_max_grid_size_x", None)
         self.blocking_factor = kw.pop("warpx_blocking_factor", None)
         self.blocking_factor_x = kw.pop("warpx_blocking_factor_x", None)
+        
+        self.lower_boundary_particles = kw.pop('warpx_lower_bound_particles',None)
+        if self.lower_boundary_particles is None:
+            self.lower_boundary_particles = self.lower_bound
+        self.upper_boundary_particles = kw.pop('warpx_upper_bound_particles',None)
+        if self.upper_boundary_particles is None:
+            self.upper_boundary_particles = self.upper_bound
+        pywarpx.boundary.add_new_attr('particle_pos_hi',self.upper_boundary_particles)
+        pywarpx.boundary.add_new_attr('particle_pos_lo',self.lower_boundary_particles)
 
         self.potential_xmin = None
         self.potential_xmax = None
@@ -1090,6 +1111,8 @@ class Cartesian1DGrid(picmistandard.PICMI_Cartesian1DGrid):
         ]
         pywarpx.boundary.particle_lo = self.lower_boundary_conditions_particles
         pywarpx.boundary.particle_hi = self.upper_boundary_conditions_particles
+        pywarpx.boundary.particle_pos_lo = self.lower_boundary_particles
+        pywarpx.boundary.particle_pos_hi = self.upper_boundary_particles
 
         if self.thermal_boundary_u_th is not None:
             for name, val in self.thermal_boundary_u_th.items():
@@ -1179,6 +1202,15 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
         self.blocking_factor = kw.pop("warpx_blocking_factor", None)
         self.blocking_factor_x = kw.pop("warpx_blocking_factor_x", None)
         self.blocking_factor_y = kw.pop("warpx_blocking_factor_y", None)
+        
+        self.lower_boundary_particles = kw.pop('warpx_lower_bound_particles',None)
+        if self.lower_boundary_particles is None:
+            self.lower_boundary_particles = self.lower_bound
+        self.upper_boundary_particles = kw.pop('warpx_upper_bound_particles',None)
+        if self.upper_boundary_particles is None:
+            self.upper_boundary_particles = self.upper_bound
+        pywarpx.boundary.add_new_attr('particle_pos_hi',self.upper_boundary_particles)
+        pywarpx.boundary.add_new_attr('particle_pos_lo',self.lower_boundary_particles)
 
         self.potential_xmin = kw.pop("warpx_potential_lo_x", None)
         self.potential_xmax = kw.pop("warpx_potential_hi_x", None)
@@ -1221,6 +1253,8 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
         ]
         pywarpx.boundary.particle_lo = self.lower_boundary_conditions_particles
         pywarpx.boundary.particle_hi = self.upper_boundary_conditions_particles
+        pywarpx.boundary.particle_pos_lo = self.lower_boundary_particles
+        pywarpx.boundary.particle_pos_hi = self.upper_boundary_particles
 
         if self.thermal_boundary_u_th is not None:
             for name, val in self.thermal_boundary_u_th.items():
@@ -1329,6 +1363,15 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
         self.blocking_factor_x = kw.pop("warpx_blocking_factor_x", None)
         self.blocking_factor_y = kw.pop("warpx_blocking_factor_y", None)
         self.blocking_factor_z = kw.pop("warpx_blocking_factor_z", None)
+        
+        self.lower_boundary_particles = kw.pop('warpx_lower_bound_particles',None)
+        if self.lower_boundary_particles is None:
+            self.lower_boundary_particles = self.lower_bound
+        self.upper_boundary_particles = kw.pop('warpx_upper_bound_particles',None)
+        if self.upper_boundary_particles is None:
+            self.upper_boundary_particles = self.upper_bound
+        pywarpx.boundary.add_new_attr('particle_pos_hi',self.upper_boundary_particles)
+        pywarpx.boundary.add_new_attr('particle_pos_lo',self.lower_boundary_particles)
 
         self.potential_xmin = kw.pop("warpx_potential_lo_x", None)
         self.potential_xmax = kw.pop("warpx_potential_hi_x", None)
@@ -1373,6 +1416,8 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
         ]
         pywarpx.boundary.particle_lo = self.lower_boundary_conditions_particles
         pywarpx.boundary.particle_hi = self.upper_boundary_conditions_particles
+        pywarpx.boundary.particle_pos_lo = self.lower_boundary_particles
+        pywarpx.boundary.particle_pos_hi = self.upper_boundary_particles
 
         if self.thermal_boundary_u_th is not None:
             for name, val in self.thermal_boundary_u_th.items():

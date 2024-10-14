@@ -9,7 +9,7 @@
 
 #include "EmbeddedBoundary/DistanceToEB.H"
 #include "Particles/Pusher/GetAndSetPosition.H"
-
+#include "WarpX.H"
 
 #include <ablastr/particles/NodalFieldGather.H>
 
@@ -162,12 +162,17 @@ scrapeParticlesAtEB (PC& pc, ablastr::fields::MultiLevelScalarField const& dista
     {
         const auto plo = pc.Geom(lev).ProbLoArray();
         const auto dxi = pc.Geom(lev).InvCellSizeArray();
+        auto& warpx = WarpX::GetInstance();
+        const auto dt = warpx.getdt(lev);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
 #endif
         for(WarpXParIter pti(pc, lev); pti.isValid(); ++pti)
         {
             const auto getPosition = GetParticlePosition<PIdx>(pti);
+            amrex::ParticleReal* uxp = pti.GetAttribs(PIdx::ux).dataPtr();
+            amrex::ParticleReal* uyp = pti.GetAttribs(PIdx::uy).dataPtr();
+            amrex::ParticleReal* uzp = pti.GetAttribs(PIdx::uz).dataPtr();
             auto& tile = pti.GetParticleTile();
             auto ptd = tile.getParticleTileData();
             const auto np = tile.numParticles();
@@ -196,20 +201,29 @@ scrapeParticlesAtEB (PC& pc, ablastr::fields::MultiLevelScalarField const& dista
                     amrex::RealVect normal = DistanceToEB::interp_normal(i, j, k, W, ic, jc, kc, Wc, phi, dxi);
                     DistanceToEB::normalize(normal);
                     amrex::RealVect pos;
+                    amrex::RealVect u;
 #if (defined WARPX_DIM_3D)
                     pos[0] = xp;
                     pos[1] = yp;
                     pos[2] = zp;
+                    u[0] = uxp[ip];
+                    u[1] = uyp[ip];
+                    u[2] = uzp[ip];
 #elif (defined WARPX_DIM_XZ)
                     pos[0] = xp;
                     pos[1] = zp;
+                    u[0] = uxp[ip];
+                    u[1] = uzp[ip];
 #elif (defined WARPX_DIM_RZ)
                     pos[0] = std::sqrt(xp*xp + yp*yp);
                     pos[1] = zp;
+                    u[0] = std::sqrt(uxp[ip]*uxp[ip]+uyp[ip]*uyp[ip]);
+                    u[1] = uzp[ip];
 #elif (defined WARPX_DIM_1D_Z)
                     pos[0] = zp;
+                    u[0] = uzp[ip];
 #endif
-                    f(ptd, ip, pos, normal, engine);
+                    f(ptd, ip, pos, normal, u, engine);
 
                 }
             });

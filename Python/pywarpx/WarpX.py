@@ -26,6 +26,7 @@ from .Lasers import lasers, lasers_list
 from .Particles import particles, particles_list
 from .ProjectionDivBCleaner import projectiondivbcleaner
 from .PSATD import psatd
+from .Macroscopic import macroscopic
 
 
 class WarpX(Bucket):
@@ -52,6 +53,7 @@ class WarpX(Bucket):
         argv += projectiondivbcleaner.attrlist()
         argv += psatd.attrlist()
         argv += eb2.attrlist()
+        argv += macroscopic.attrlist()
 
         # --- Search through species_names and add any predefined particle objects in the list.
         particles_list_names = [p.instancename for p in particles_list]
