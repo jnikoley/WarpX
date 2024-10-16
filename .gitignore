@@ -12,6 +12,7 @@ AMReX_buildInfo.cpp
 Backtrace.*
 *.vth
 *.sw[opqrs]
+.cache/
 
 ####################
 # AMReX data files #
@@ -73,3 +74,6 @@ cmake-build-*/
 
 #Python
 *.whl
+
+CMakeCache.txt
+CMakeFiles/

@@ -239,14 +239,9 @@ public:
     /** The position of the upper boundary for particles only.
      *  These may differ from 
      */
-    static inline amrex::Array<amrex::Real,AMREX_SPACEDIM>
-        particle_boundary_pos_lo {AMREX_D_DECL(0,0,0)};
+    static amrex::Vector<amrex::Real> particle_boundary_pos_lo;
 
-    /** Integers that correspond to boundary condition applied to particles at the
-     *  upper domain boundaries
-     */
-    static inline amrex::Array<amrex::Real,AMREX_SPACEDIM>
-        particle_boundary_pos_hi {AMREX_D_DECL(0,0,0)};
+    static amrex::Vector<amrex::Real> particle_boundary_pos_hi;
 
     //! Integer that corresponds to the order of the PSATD solution
     //! (whether the PSATD equations are derived from first-order or

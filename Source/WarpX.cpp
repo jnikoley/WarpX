@@ -195,6 +195,9 @@ amrex::IntVect m_rho_nodal_flag;
 
 WarpX* WarpX::m_instance = nullptr;
 
+amrex::Vector<amrex::Real> WarpX::particle_boundary_pos_lo(AMREX_SPACEDIM,0);
+amrex::Vector<amrex::Real> WarpX::particle_boundary_pos_hi(AMREX_SPACEDIM,0);
+
 namespace
 {
 
