@@ -1617,8 +1617,8 @@ WarpX::ReadExternalFieldFromFile (
 
 #if defined(WARPX_DIM_RZ)
                 // Get index of the external field array
-                int const ir = std::floor( (x0-offset0)/file_dr );
-                int const iz = std::floor( (x1-offset1)/file_dz );
+                int const ir = std::min(static_cast<int>(std::floor( std::max((x0-offset0)/file_dr,0.0))),static_cast<int>(extent1-2));
+                int const iz = std::min(static_cast<int>(std::floor( std::max((x1-offset1)/file_dz,0.0))),static_cast<int>(extent2-2));
 
                 // Get coordinates of external grid point
                 amrex::Real const xx0 = offset0 + ir * file_dr;
@@ -1631,9 +1631,9 @@ WarpX::ReadExternalFieldFromFile (
                 else { x2 = real_box.lo(2) + k*dx[2] + 0.5_rt*dx[2]; }
 
                 // Get index of the external field array
-                int const ix = std::floor( (x0-offset0)/file_dx );
-                int const iy = std::floor( (x1-offset1)/file_dy );
-                int const iz = std::floor( (x2-offset2)/file_dz );
+                int const ix = std::min(static_cast<int>(std::floor( std::max((x0-offset0)/file_dx,0.0))),static_cast<int>(extent0-2));
+                int const iy = std::min(static_cast<int>(std::floor( std::max((x1-offset1)/file_dy,0.0))),static_cast<int>(extent1-2));
+                int const iz = std::min(static_cast<int>(std::floor( std::max((x2-offset2)/file_dz,0.0))),static_cast<int>(extent2-2));
 
                 // Get coordinates of external grid point
                 amrex::Real const xx0 = offset0 + ix * file_dx;
