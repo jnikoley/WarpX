@@ -95,9 +95,15 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
     for (const auto& scattering_process : scattering_process_names) {
         const std::string kw_cross_section = scattering_process + "_cross_section";
         std::string cross_section_file;
-        pp_collision_name.query(kw_cross_section.c_str(), cross_section_file);
+        const std::string kw_cross_section_function = scattering_process + "_cross_section_function(x)";
+        std::string cross_section_function;
+        
+        bool has_cross_section_file;
+        has_cross_section_file = pp_collision_name.query(kw_cross_section.c_str(), cross_section_file);
 
         amrex::ParticleReal energy = 0.0;
+        amrex::ParticleReal lo_energy = 0.0;
+        amrex::ParticleReal hi_energy = 0.0;
         // if the scattering process is excitation or ionization get the
         // energy associated with that process
         if (scattering_process.find("excitation") != std::string::npos ||
@@ -107,7 +113,22 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
                 pp_collision_name, kw_energy.c_str(), energy);
         }
 
-        ScatteringProcess process(scattering_process, cross_section_file, energy);
+        pp_collision_name.query(kw_cross_section_function.c_str(), cross_section_function);
+        if (!has_cross_section_file){
+            // then load upper and lower energy bounds
+            const std::string kw_lo_energy = scattering_process + "_low_energy";
+            utils::parser::getWithParser(
+                pp_collision_name, kw_lo_energy.c_str(), lo_energy);
+            
+            const std::string kw_hi_energy = scattering_process + "_high_energy";
+            utils::parser::getWithParser(
+                pp_collision_name, kw_hi_energy.c_str(), hi_energy);
+        }
+
+        ScatteringProcess process = ((has_cross_section_file) ? 
+                                    ScatteringProcess(scattering_process, cross_section_file, energy): 
+                                    ScatteringProcess(scattering_process,cross_section_function,hi_energy,lo_energy,energy)
+                                    );        
 
         WARPX_ALWAYS_ASSERT_WITH_MESSAGE(process.type() != ScatteringProcessType::INVALID,
                                          "Cannot add an unknown scattering process type");

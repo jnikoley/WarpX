@@ -9,10 +9,16 @@
 #ifndef WARPX_PARTICLES_COLLISION_SCATTERING_PROCESS_H_
 #define WARPX_PARTICLES_COLLISION_SCATTERING_PROCESS_H_
 
+#include <AMReX_GpuDevice.H>
 #include <AMReX_Math.H>
+#include <AMReX_Parser.H>
+#include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 #include <AMReX_RandomEngine.H>
 #include <AMReX_GpuContainers.H>
+#include "Utils/Parser/ParserUtils.H"
+#include <AMReX_ParmParse.H>
+
 
 enum class ScatteringProcessType {
     INVALID,
@@ -21,11 +27,24 @@ enum class ScatteringProcessType {
     CHARGE_EXCHANGE,
     EXCITATION,
     IONIZATION,
+    DISSOCIATION,
+    RECOMBINATION,
 };
 
 class ScatteringProcess
 {
 public:
+    // Empty Scattering Process only returns an invalid process type
+    ScatteringProcess(); 
+
+    ScatteringProcess (           
+                const std::string& scattering_process,
+                const std::string& cross_section_function,
+                amrex::ParticleReal high_energy,
+                amrex::ParticleReal low_energy,
+                amrex::ParticleReal energy 
+    );
+
     ScatteringProcess (
                 const std::string& scattering_process,
                 const std::string& cross_section_file,

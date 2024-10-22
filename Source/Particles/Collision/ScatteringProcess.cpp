@@ -10,6 +10,9 @@
 
 #include "Utils/TextMsg.H"
 #include "WarpX.H"
+#include <AMReX_ParmParse.H>
+#include "Utils/Parser/ParserUtils.H"
+#include <AMReX_REAL.H>
 
 ScatteringProcess::ScatteringProcess (
                         const std::string& scattering_process,
@@ -20,6 +23,48 @@ ScatteringProcess::ScatteringProcess (
     readCrossSectionFile(cross_section_file, m_energies, m_sigmas_h);
 
     init(scattering_process, energy);
+}
+
+ScatteringProcess::ScatteringProcess()
+{
+    m_exe_h.m_type = ScatteringProcessType::INVALID;
+}
+
+ScatteringProcess::ScatteringProcess( 
+                        const std::string& scattering_process,
+                        const std::string& cross_section_function,
+                        const amrex::ParticleReal high_energy,
+                        const amrex::ParticleReal low_energy,
+                        const amrex::ParticleReal energy )
+{
+    using namespace amrex::literals;
+    //Parse the input function
+
+    auto cx_parser = std::make_unique<amrex::Parser>(
+        utils::parser::makeParser(cross_section_function,{"x"}));
+    amrex::ParserExecutor<1> cx_parse_exec = cx_parser->compile<1>();
+
+    m_exe_h.m_dE = 0.2_prt;
+    
+    amrex::ParticleReal E = low_energy;
+    amrex::ParticleReal sigma;
+    while(E < high_energy){
+        m_energies.push_back(E);
+        if (E<energy+m_exe_h.m_dE){
+            // Force low end handling sigma to 0 since functional form may not go to 0 at low energy
+            sigma = 0_prt;
+        }
+        else{
+            sigma = cx_parse_exec(E);
+           
+        }
+        m_sigmas_h.push_back(sigma);
+        
+        E+=m_exe_h.m_dE;
+    }
+   
+    init(scattering_process,energy);
+
 }
 
 template <typename InputVector>
@@ -85,6 +130,10 @@ ScatteringProcess::parseProcessType(const std::string& scattering_process)
         return ScatteringProcessType::CHARGE_EXCHANGE;
     } else if (scattering_process == "ionization") {
         return ScatteringProcessType::IONIZATION;
+    } else if (scattering_process == "dissociation"){ 
+        return ScatteringProcessType::DISSOCIATION;
+    } else if (scattering_process == "recombination"){ 
+        return ScatteringProcessType::RECOMBINATION;
     } else if (scattering_process.find("excitation") != std::string::npos) {
         return ScatteringProcessType::EXCITATION;
     } else {
