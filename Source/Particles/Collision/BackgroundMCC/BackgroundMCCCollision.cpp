@@ -97,7 +97,10 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
         std::string cross_section_file;
         const std::string kw_cross_section_function = scattering_process + "_cross_section_function(x)";
         std::string cross_section_function;
-        
+        bool log_log_interpolation = false;
+        const std::string kw_cross_section_log = scattering_process + "_cross_section_log";
+        pp_collision_name.query(kw_cross_section_log.c_str(),log_log_interpolation);
+
         bool has_cross_section_file;
         has_cross_section_file = pp_collision_name.query(kw_cross_section.c_str(), cross_section_file);
 
@@ -126,8 +129,8 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
         }
 
         ScatteringProcess process = ((has_cross_section_file) ? 
-                                    ScatteringProcess(scattering_process, cross_section_file, energy): 
-                                    ScatteringProcess(scattering_process,cross_section_function,hi_energy,lo_energy,energy)
+                                    ScatteringProcess(scattering_process, cross_section_file, energy,log_log_interpolation): 
+                                    ScatteringProcess(scattering_process,cross_section_function,hi_energy,lo_energy,energy,log_log_interpolation)
                                     );        
 
         WARPX_ALWAYS_ASSERT_WITH_MESSAGE(process.type() != ScatteringProcessType::INVALID,

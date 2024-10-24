@@ -46,8 +46,8 @@ DSMCFunc::DSMCFunc (
             utils::parser::getWithParser(
                 pp_collision_name, kw_energy.c_str(), energy);
         }
-
-        ScatteringProcess process(scattering_process, cross_section_file, energy);
+        // TODO: update this for loglog-interpolation
+        ScatteringProcess process(scattering_process, cross_section_file, energy,false);
 
         WARPX_ALWAYS_ASSERT_WITH_MESSAGE(process.type() != ScatteringProcessType::INVALID,
                                         "Cannot add an unknown scattering process type");

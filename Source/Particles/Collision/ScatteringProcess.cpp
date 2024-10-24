@@ -17,11 +17,14 @@
 ScatteringProcess::ScatteringProcess (
                         const std::string& scattering_process,
                         const std::string& cross_section_file,
-                        const amrex::ParticleReal energy )
+                        const amrex::ParticleReal energy, bool loglogInterp)
 {
     // read the cross-section data file into memory
     readCrossSectionFile(cross_section_file, m_energies, m_sigmas_h);
-
+    if (loglogInterp){
+        m_exe_h.m_LogLogInterp = true;
+        // TODO: handle log log read values
+    }
     init(scattering_process, energy);
 }
 
@@ -35,7 +38,7 @@ ScatteringProcess::ScatteringProcess(
                         const std::string& cross_section_function,
                         const amrex::ParticleReal high_energy,
                         const amrex::ParticleReal low_energy,
-                        const amrex::ParticleReal energy )
+                        const amrex::ParticleReal energy, bool loglogInterp)
 {
     using namespace amrex::literals;
     //Parse the input function
@@ -43,19 +46,43 @@ ScatteringProcess::ScatteringProcess(
     auto cx_parser = std::make_unique<amrex::Parser>(
         utils::parser::makeParser(cross_section_function,{"x"}));
     amrex::ParserExecutor<1> cx_parse_exec = cx_parser->compile<1>();
-
+    amrex::ParticleReal high_e = high_energy; // local copy so we can take log if necessary
+    amrex::ParticleReal low_e = low_energy;
+    amrex::ParticleReal threshold = energy;
     m_exe_h.m_dE = 0.2_prt;
-    
-    amrex::ParticleReal E = low_energy;
+    if (loglogInterp){
+        const int nPoints = 2000;
+        high_e = log(high_e);
+        low_e = log(low_e);
+        threshold = log(threshold);
+        m_exe_h.m_LogLogInterp = true;
+        m_exe_h.m_dE = (high_e - low_e) / (nPoints-1);
+
+    }
+    amrex::ParticleReal E = low_e;
     amrex::ParticleReal sigma;
-    while(E < high_energy){
+    while(E < high_e+m_exe_h.m_dE){
         m_energies.push_back(E);
-        if (E<energy+m_exe_h.m_dE){
+        if (E<threshold+m_exe_h.m_dE){
             // Force low end handling sigma to 0 since functional form may not go to 0 at low energy
-            sigma = 0_prt;
+            if (loglogInterp) {
+                sigma = -1e300; // -> small real number
+            } else {
+                sigma = 0_prt;
+            }
         }
         else{
-            sigma = cx_parse_exec(E);
+            if (loglogInterp) {
+                auto sig = cx_parse_exec(exp(E));
+                if (sig<=0){
+                    sigma = -1e300; // so that exp(sigma) = 0
+                } else{
+                    sigma = log(sig);
+                }
+                
+            } else {
+                sigma = cx_parse_exec(E);
+            }   
            
         }
         m_sigmas_h.push_back(sigma);
@@ -64,7 +91,6 @@ ScatteringProcess::ScatteringProcess(
     }
    
     init(scattering_process,energy);
-
 }
 
 template <typename InputVector>
@@ -72,7 +98,7 @@ ScatteringProcess::ScatteringProcess (
                         const std::string& scattering_process,
                         const InputVector&& energies,
                         const InputVector&& sigmas,
-                        const amrex::ParticleReal energy )
+                        const amrex::ParticleReal energy, const bool loglogInterp)
 {
     m_energies.insert(m_energies.begin(), std::begin(energies), std::end(energies));
     m_sigmas_h.insert(m_sigmas_h.begin(), std::begin(sigmas),   std::end(sigmas));
