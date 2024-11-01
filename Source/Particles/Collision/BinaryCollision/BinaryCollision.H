@@ -7,13 +7,16 @@
 #ifndef WARPX_PARTICLES_COLLISION_BINARYCOLLISION_H_
 #define WARPX_PARTICLES_COLLISION_BINARYCOLLISION_H_
 
+#include "Particles/Collision/BinaryCollision/BinaryCollisionUtils.H"
 #include "Particles/Collision/BinaryCollision/Coulomb/PairWiseCoulombCollisionFunc.H"
 #include "Particles/Collision/BinaryCollision/Coulomb/ComputeTemperature.H"
 #include "Particles/Collision/BinaryCollision/DSMC/DSMCFunc.H"
 #include "Particles/Collision/BinaryCollision/NuclearFusion/NuclearFusionFunc.H"
 #include "Particles/Collision/BinaryCollision/ParticleCreationFunc.H"
 #include "Particles/Collision/BinaryCollision/ShuffleFisherYates.H"
+#include "Particles/Collision/BinaryCollision/Recombination.H"
 #include "Particles/Collision/CollisionBase.H"
+#include "Particles/NamedComponentParticleContainer.H"
 #include "Particles/ParticleCreation/SmartCopy.H"
 #include "Particles/ParticleCreation/SmartUtils.H"
 #include "Particles/Pusher/GetAndSetPosition.H"
@@ -728,7 +731,15 @@ public:
                         p_pair_reaction_weight, engine);
                 }
             );
-
+            amrex::ParallelForRNG(n_total_pairs,
+                [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
+                {
+                    if (p_mask[i]>1)
+                    {
+                        p_mask[i]=1;
+                    }
+                }
+            );
             // Create the new product particles and define their initial values
             // num_added: how many particles of each product species have been created
             const amrex::Vector<int> num_added = m_copy_transform_functor(n_total_pairs,

@@ -34,6 +34,18 @@ ParticleCreationFunc::ParticleCreationFunc (const std::string& collision_name,
         m_num_products_device.push_back(3);
 #endif
     }
+    else if (m_collision_type == CollisionType::Recombination)
+    {
+        // Recombination only produces the recombined atom
+        m_num_product_species = 1;
+        m_num_products_host.push_back(1);
+        //m_num_products_host.push_back(1);
+#ifndef AMREX_USE_GPU
+        // On CPU, the device vector can be filled immediately
+        m_num_products_device.push_back(1);
+        //m_num_products_device.push_back(1);
+#endif
+    }
     else if ((m_collision_type == CollisionType::DeuteriumTritiumToNeutronHeliumFusion)
              || (m_collision_type == CollisionType::DeuteriumDeuteriumToProtonTritiumFusion)
              || (m_collision_type == CollisionType::DeuteriumDeuteriumToNeutronHeliumFusion))

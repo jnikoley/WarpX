@@ -15,6 +15,7 @@
 #include "Particles/ParticleCreation/SmartCopy.H"
 #include "Particles/MultiParticleContainer.H"
 #include "Particles/WarpXParticleContainer.H"
+#include "Particles/Collision/BinaryCollision/Recombination.H"
 
 #include <AMReX_DenseBins.H>
 #include <AMReX_GpuAtomic.H>
@@ -24,6 +25,7 @@
 #include <AMReX_Random.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
+#include <iostream>
 
 /**
  * \brief This functor creates particles produced from a binary collision and sets their initial
@@ -199,6 +201,14 @@ public:
                     const index_type product_start_index = products_np_data[0] + 2*p_offsets[i]*
                                                            p_num_products_device[0];
                     ProtonBoronFusionInitializeMomentum(soa_1, soa_2, soa_products_data[0],
+                                                        p_pair_indices_1[i], p_pair_indices_2[i],
+                                                        product_start_index, m1, m2, engine);
+                }
+                else if (t_collision_type == CollisionType::Recombination)
+                {
+                    const index_type product_start_index = products_np_data[0] + 2*p_offsets[i]*
+                                                           p_num_products_device[0];
+                    RecombinationInitializeMomentum(soa_1, soa_2, soa_products_data[0],
                                                         p_pair_indices_1[i], p_pair_indices_2[i],
                                                         product_start_index, m1, m2, engine);
                 }

@@ -27,6 +27,9 @@ namespace BinaryCollisionUtils{
         if (type == "pairwisecoulomb") {
             return CollisionType::PairwiseCoulomb;
         }
+        else if (type == "recombination") {
+            return CollisionType::Recombination;
+        }
         else if (type == "nuclearfusion") {
             const NuclearFusionType fusion_type = get_nuclear_fusion_type(collision_name, mypc);
             return nuclear_fusion_type_to_collision_type(fusion_type);

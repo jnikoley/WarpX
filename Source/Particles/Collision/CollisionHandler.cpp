@@ -10,6 +10,7 @@
 #include "Particles/Collision/BackgroundStopping/BackgroundStopping.H"
 #include "Particles/Collision/BinaryCollision/BinaryCollision.H"
 #include "Particles/Collision/BinaryCollision/Coulomb/PairWiseCoulombCollisionFunc.H"
+#include "Particles/Collision/BinaryCollision/Recombination.H"
 #include "Particles/Collision/BinaryCollision/DSMC/DSMCFunc.H"
 #include "Particles/Collision/BinaryCollision/DSMC/SplitAndScatterFunc.H"
 #include "Particles/Collision/BinaryCollision/NuclearFusion/NuclearFusionFunc.H"
@@ -46,6 +47,12 @@ CollisionHandler::CollisionHandler(MultiParticleContainer const * const mypc)
         if (type == "pairwisecoulomb") {
             allcollisions[i] =
                std::make_unique<BinaryCollision<PairWiseCoulombCollisionFunc>>(
+                    collision_names[i], mypc
+                );
+        }
+        else if (type == "recombination"){
+            allcollisions[i] = 
+                std::make_unique<BinaryCollision<DSMCFunc, ParticleCreationFunc>>(
                     collision_names[i], mypc
                 );
         }

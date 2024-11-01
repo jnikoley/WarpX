@@ -10,6 +10,7 @@
 
 #include "Utils/TextMsg.H"
 #include "WarpX.H"
+#include <AMReX_INT.H>
 #include <AMReX_ParmParse.H>
 #include "Utils/Parser/ParserUtils.H"
 #include <AMReX_REAL.H>
@@ -23,7 +24,7 @@ ScatteringProcess::ScatteringProcess (
     readCrossSectionFile(cross_section_file, m_energies, m_sigmas_h);
     if (loglogInterp){
         m_exe_h.m_LogLogInterp = true;
-        // TODO: handle log log read values
+        // If we're reading a file the energies must be ln(E) and sigma must be ln(sigma)
     }
     init(scattering_process, energy);
 }
