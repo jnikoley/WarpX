@@ -72,11 +72,14 @@ private:
 
     amrex::Vector<ScatteringProcess> m_scattering_processes;
     amrex::Vector<ScatteringProcess> m_ionization_processes;
+    amrex::Vector<ScatteringProcess> m_dissociation_processes;
     amrex::Gpu::DeviceVector<ScatteringProcess::Executor> m_scattering_processes_exe;
     amrex::Gpu::DeviceVector<ScatteringProcess::Executor> m_ionization_processes_exe;
+    amrex::Gpu::DeviceVector<ScatteringProcess::Executor> m_dissociation_processes_exe;
 
     bool init_flag = false;
     bool ionization_flag = false;
+    bool dissociation_flag = false;
 
     amrex::ParticleReal m_mass1;
 
@@ -84,8 +87,10 @@ private:
     amrex::ParticleReal m_background_mass;
     amrex::ParticleReal m_total_collision_prob;
     amrex::ParticleReal m_total_collision_prob_ioniz = 0;
+    amrex::ParticleReal m_total_collision_prob_dissoc = 0;
     amrex::ParticleReal m_nu_max;
     amrex::ParticleReal m_nu_max_ioniz;
+    amrex::ParticleReal m_nu_max_dissoc;
 
     amrex::Parser m_background_density_parser;
     amrex::Parser m_background_temperature_parser;

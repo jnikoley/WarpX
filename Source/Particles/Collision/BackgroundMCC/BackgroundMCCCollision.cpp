@@ -110,7 +110,8 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
         // if the scattering process is excitation or ionization get the
         // energy associated with that process
         if (scattering_process.find("excitation") != std::string::npos ||
-            scattering_process.find("ionization") != std::string::npos) {
+            scattering_process.find("ionization") != std::string::npos ||
+            scattering_process.find("dissociation") != std::string::npos) {
             const std::string kw_energy = scattering_process + "_energy";
             utils::parser::getWithParser(
                 pp_collision_name, kw_energy.c_str(), energy);
@@ -151,6 +152,11 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
             m_species_names.push_back(secondary_species);
 
             m_ionization_processes.push_back(std::move(process));
+        } else if (process.type() == ScatteringProcessType::DISSOCIATION){
+            
+            dissociation_flag = true;
+            m_dissociation_processes.push_back(std::move(process));
+
         } else {
             m_scattering_processes.push_back(std::move(process));
         }
@@ -159,18 +165,25 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
 #ifdef AMREX_USE_GPU
     amrex::Gpu::HostVector<ScatteringProcess::Executor> h_scattering_processes_exe;
     amrex::Gpu::HostVector<ScatteringProcess::Executor> h_ionization_processes_exe;
+    amrex::Gpu::HostVector<ScatteringProcess::Executor> h_dissociation_processes_exe;
     for (auto const& p : m_scattering_processes) {
         h_scattering_processes_exe.push_back(p.executor());
     }
     for (auto const& p : m_ionization_processes) {
         h_ionization_processes_exe.push_back(p.executor());
     }
+    for (auto const& p : m_dissociation_processes) {
+        h_dissociation_processes_exe.push_back(p.executor());
+    }
     m_scattering_processes_exe.resize(h_scattering_processes_exe.size());
     m_ionization_processes_exe.resize(h_ionization_processes_exe.size());
+    m_dissociation_processes_exe.resize(h_dissociation_processes_exe.size());
     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, h_scattering_processes_exe.begin(),
                           h_scattering_processes_exe.end(), m_scattering_processes_exe.begin());
     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, h_ionization_processes_exe.begin(),
                           h_ionization_processes_exe.end(), m_ionization_processes_exe.begin());
+    amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, h_dissociation_processes_exe.begin(),
+                          h_dissociation_processes_exe.end(), m_dissociation_processes_exe.begin());
     amrex::Gpu::streamSynchronize();
 #else
     for (auto const& p : m_scattering_processes) {
@@ -178,6 +191,9 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
     }
     for (auto const& p : m_ionization_processes) {
         m_ionization_processes_exe.push_back(p.executor());
+    }
+    for (auto const& p : m_dissociation_processes) {
+        m_dissociation_processes_exe.push_back(p.executor());
     }
 #endif
 }
@@ -240,10 +256,17 @@ BackgroundMCCCollision::doCollisions (amrex::Real cur_time, amrex::Real dt, Mult
     // this is a very ugly hack to have species2 be a reference and be
     // defined in the scope of doCollisions
     auto& species2 = (
-                      (m_species_names.size() == 2) ?
+                      (m_species_names.size() >= 2) ?
                       mypc->GetParticleContainerFromName(m_species_names[1]) :
                       mypc->GetParticleContainerFromName(m_species_names[0])
                       );
+    // this is a very ugly hack to have species2 be a reference and be
+    // defined in the scope of doCollisions
+    auto& species3 = (
+                      (m_species_names.size() == 3) ?
+                      mypc->GetParticleContainerFromName(m_species_names[2]) :
+                      mypc->GetParticleContainerFromName(m_species_names[0])
+                      ); 
 
     if (!init_flag) {
         m_mass1 = species1.getMass();
@@ -290,6 +313,21 @@ BackgroundMCCCollision::doCollisions (amrex::Real cur_time, amrex::Real dt, Mult
         else if (m_background_mass == -1) {
             m_background_mass = species1.getMass();
         }
+        
+        if (dissociation_flag){
+            m_nu_max_dissoc = get_nu_max(m_dissociation_processes);
+
+            auto coll_n_dissoc = m_nu_max_dissoc * dt;
+            m_total_collision_prob_dissoc = 1.0_prt - std::exp(-coll_n_dissoc);
+
+            if (coll_n_dissoc > 0.1_prt) {
+                ablastr::warn_manager::WMRecordWarning("BackgroundMCC Collisions",
+                         "dt is too large to ensure accurate MCC dissociation , coll_n_dissocation: " +
+                          std::to_string(coll_n_dissoc) + " is > 0.1 and dissocaition probability is = " +
+                          std::to_string(m_total_collision_prob_dissoc) + "\n");
+            }
+
+        }
 
         amrex::Print() << Utils::TextMsg::Info(
             "Setting up collisions for " + m_species_names[0] + " with:\n"
@@ -297,6 +335,8 @@ BackgroundMCCCollision::doCollisions (amrex::Real cur_time, amrex::Real dt, Mult
             + std::to_string(m_total_collision_prob)
             + "\n     total ionization collision probability: "
             + std::to_string(m_total_collision_prob_ioniz)
+            + "\n     total dissociation collision probability: "
+            + std::to_string(m_total_collision_prob_dissoc)
         );
 
         init_flag = true;

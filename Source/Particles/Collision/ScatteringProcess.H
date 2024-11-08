@@ -106,9 +106,9 @@ public:
             // So that CUDA code gets its intrinsic, not the host-only C++ library version
             using std::sqrt, std::abs, std::log, std::exp;
             if (m_LogLogInterp){
-                //if (E_coll<=m_energy_penalty){
-                //    return 0; //Force this since we can't save 0 in our log log spacing
-                //}
+                if (E_coll<=m_energy_penalty){
+                    return 0; //Force this since we can't save 0 in our log log spacing
+                }
                 E_coll = log(E_coll);
             }
             if (E_coll < m_energy_lo) {
