@@ -20,6 +20,8 @@ enum struct CollisionType { DeuteriumTritiumToNeutronHeliumFusion,
                             DeuteriumHeliumToProtonHeliumFusion,
                             ProtonBoronToAlphasFusion,
                             Recombination,
+                            Dissociation,
+                            DissociativeIonization,
                             DSMC,
                             PairwiseCoulomb,
                             Undefined };

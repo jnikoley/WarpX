@@ -56,6 +56,12 @@ CollisionHandler::CollisionHandler(MultiParticleContainer const * const mypc)
                     collision_names[i], mypc
                 );
         }
+        else if (type == "dissociation"){
+            allcollisions[i] = 
+                std::make_unique<BinaryCollision<DSMCFunc, ParticleCreationFunc>>(
+                    collision_names[i], mypc
+                );
+        }
         else if (type == "background_mcc") {
             allcollisions[i] = std::make_unique<BackgroundMCCCollision>(collision_names[i]);
         }

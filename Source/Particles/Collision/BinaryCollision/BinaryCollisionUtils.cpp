@@ -30,6 +30,12 @@ namespace BinaryCollisionUtils{
         else if (type == "recombination") {
             return CollisionType::Recombination;
         }
+        else if (type == "dissociation"){
+            return CollisionType::Dissociation;
+        }
+        else if (type == "dissociativeionization"){
+            return CollisionType::DissociativeIonization;
+        }
         else if (type == "nuclearfusion") {
             const NuclearFusionType fusion_type = get_nuclear_fusion_type(collision_name, mypc);
             return nuclear_fusion_type_to_collision_type(fusion_type);
