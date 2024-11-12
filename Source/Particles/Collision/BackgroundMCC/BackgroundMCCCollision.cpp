@@ -7,19 +7,23 @@
 #include "BackgroundMCCCollision.H"
 
 #include "ImpactIonization.H"
+#include "ImpactDissociation.H"
 #include "Particles/ParticleCreation/FilterCopyTransform.H"
 #include "Particles/ParticleCreation/SmartCopy.H"
+#include "Particles/WarpXParticleContainer.H"
 #include "Utils/Parser/ParserUtils.H"
 #include "Utils/TextMsg.H"
 #include "Utils/ParticleUtils.H"
 #include "Utils/WarpXProfilerWrapper.H"
 #include "WarpX.H"
 
+#include <AMReX_IndexType.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
 #include <string>
+#include <vector>
 
 BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_name)
     : CollisionBase(collision_name)
@@ -153,7 +157,50 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
 
             m_ionization_processes.push_back(std::move(process));
         } else if (process.type() == ScatteringProcessType::DISSOCIATION){
-            
+            // m_species_names should already have the source particle in it 
+            // need to add the number of output particles
+            m_num_products_host.push_back(1); // The source particle remains after collision
+            #ifndef AMREX_USE_GPU
+                // On CPU, the device vector can be filled immediately
+                m_num_products_device.push_back(1);
+
+            #endif
+
+            amrex::Vector<std::string> dissociation_species;
+            pp_collision_name.getarr("dissociation_species",dissociation_species);
+            for (auto source_species : dissociation_species){
+                auto it = std::find(m_species_names.begin(), m_species_names.end(), source_species);
+                if (it == m_species_names.end()) {
+                    // If not found, add to destination
+                    m_species_names.push_back(source_species);
+                    m_num_products_host.push_back(1); // Add a new count for this item
+                    #ifndef AMREX_USE_GPU
+                        // On CPU, the device vector can be filled immediately
+                        m_num_products_device.push_back(1);
+
+                    #endif
+                } else {
+                    // If found, update the count of matches
+                    size_t index = std::distance(m_species_names.begin(), it);
+                    m_num_products_host[index]++;
+                    #ifndef AMREX_USE_GPU
+                        // On CPU, the device vector can be filled immediately
+                        m_num_products_device[index]++;
+                    #endif
+                }
+
+            }
+            #ifdef AMREX_USE_GPU
+                m_num_products_device.resize(m_species_names.size());
+                amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, m_num_products_host.begin(),
+                                    m_num_products_host.end(),
+                                    m_num_products_device.begin());
+                amrex::Gpu::streamSynchronize();
+            #endif
+            for (int i=0; i<m_species_names.size();i++){
+                std::cout<<m_species_names[i]<<": "<<m_num_products_host[i]<<std::endl;
+            }
+
             dissociation_flag = true;
             m_dissociation_processes.push_back(std::move(process));
 
@@ -262,11 +309,10 @@ BackgroundMCCCollision::doCollisions (amrex::Real cur_time, amrex::Real dt, Mult
                       );
     // this is a very ugly hack to have species2 be a reference and be
     // defined in the scope of doCollisions
-    auto& species3 = (
-                      (m_species_names.size() == 3) ?
-                      mypc->GetParticleContainerFromName(m_species_names[2]) :
-                      mypc->GetParticleContainerFromName(m_species_names[0])
-                      ); 
+    std::vector<WarpXParticleContainer*> speciesList;
+    for (int i=0; i<m_species_names.size();i++){
+        speciesList.push_back(&mypc->GetParticleContainerFromName(m_species_names[i]));
+    } 
 
     if (!init_flag) {
         m_mass1 = species1.getMass();
@@ -323,7 +369,7 @@ BackgroundMCCCollision::doCollisions (amrex::Real cur_time, amrex::Real dt, Mult
             if (coll_n_dissoc > 0.1_prt) {
                 ablastr::warn_manager::WMRecordWarning("BackgroundMCC Collisions",
                          "dt is too large to ensure accurate MCC dissociation , coll_n_dissocation: " +
-                          std::to_string(coll_n_dissoc) + " is > 0.1 and dissocaition probability is = " +
+                          std::to_string(coll_n_dissoc) + " is > 0.1 and dissociation probability is = " +
                           std::to_string(m_total_collision_prob_dissoc) + "\n");
             }
 
@@ -373,6 +419,10 @@ BackgroundMCCCollision::doCollisions (amrex::Real cur_time, amrex::Real dt, Mult
         // secondly perform ionization through the SmartCopyFactory if needed
         if (ionization_flag) {
             doBackgroundIonization(lev, cost, species1, species2, cur_time);
+        }
+
+        if (dissociation_flag) {
+            doBackgroundDissociation(lev, cost, speciesList.data(), m_num_products_host.data(), m_species_names.size(), cur_time);
         }
     }
 }
@@ -578,6 +628,77 @@ void BackgroundMCCCollision::doBackgroundIonization
 
         setNewParticleIDs(elec_tile, np_elec, num_added);
         setNewParticleIDs(ion_tile, np_ion, num_added);
+
+        if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
+        {
+            amrex::Gpu::synchronize();
+            wt = static_cast<amrex::Real>(amrex::second()) - wt;
+            amrex::HostDevice::Atomic::Add( &(*cost)[pti.index()], wt);
+        }
+    }
+}
+
+
+void BackgroundMCCCollision::doBackgroundDissociation
+( int lev, amrex::LayoutData<amrex::Real>* cost,
+  WarpXParticleContainer** speciesList, int* num_added_vec, int num_species, amrex::Real t)
+{
+    WARPX_PROFILE("BackgroundMCCCollision::doBackgroundDissociation()");
+    std::vector<SmartCopyFactory> copy_factory;
+    std::vector<SmartCopy> copy_vect;
+    for (int i=0; i<num_species;i++){
+        const SmartCopyFactory copy_factory_i(*speciesList[0], *speciesList[i]);
+        copy_factory.push_back(copy_factory_i);
+        copy_vect.push_back(copy_factory_i.getSmartCopy());
+    }
+
+    // const SmartCopyFactory copy_factory_elec(species1, species1);
+    // const SmartCopyFactory copy_factory_ion(species1, species2);
+    // const SmartCopyFactory copy_factory_neutral(species1, species3);
+    // const auto CopyElec = copy_factory_elec.getSmartCopy();
+    // const auto CopyIon = copy_factory_ion.getSmartCopy();
+    // const auto CopyNeutral = copy_factory_neutral.getSmartCopy();
+
+    const auto Filter = ImpactIonizationFilterFunc(
+                                                   m_dissociation_processes[0],
+                                                   m_mass1, m_total_collision_prob_dissoc,
+                                                   m_nu_max_dissoc, m_background_density_func, t
+                                                   );
+    // This is general enough that we can reuse it for dissociation. 
+    // All it checks is that the given cx is > some random
+
+    const amrex::ParticleReal sqrt_kb_m = std::sqrt(PhysConst::kb / m_background_mass);
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
+#endif
+    for (WarpXParIter pti(*(speciesList[0]), lev); pti.isValid(); ++pti) {
+
+        if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
+        {
+            amrex::Gpu::synchronize();
+        }
+        auto wt = static_cast<amrex::Real>(amrex::second());
+
+        auto& elec_tile = speciesList[0]->ParticlesAt(lev, pti);
+        auto& ion_tile = speciesList[1]->ParticlesAt(lev, pti);
+        //auto& neutral_tile = species3.ParticlesAt(lev, pti);
+
+        const auto np_elec = elec_tile.numParticles();
+        const auto np_ion = ion_tile.numParticles();
+        //const auto np_neutral = neutral_tile.numParticles();
+
+        auto Transform = ImpactDissociationTransformFunc(
+                                                       m_dissociation_processes[0].getEnergyPenalty(),
+                                                       m_mass1, sqrt_kb_m, m_background_temperature_func, t
+                                                       );
+
+
+        const auto num_added = filterCopyTransformParticles<2>(*speciesList[1],ion_tile,
+        elec_tile,np_ion, Filter, copy_vect[1], Transform);
+
+        setNewParticleIDs(ion_tile, np_ion, num_added);
+
 
         if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
         {

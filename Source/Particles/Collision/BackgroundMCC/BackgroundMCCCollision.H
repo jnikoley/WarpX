@@ -11,6 +11,7 @@
 #include "Particles/Collision/CollisionBase.H"
 #include "Particles/Collision/ScatteringProcess.H"
 
+#include <AMReX_IndexType.H>
 #include <AMReX_Parser.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
@@ -68,6 +69,24 @@ public:
                                  amrex::Real t
                                  );
 
+    /** Perform MCC dissociation interactions
+     *
+     * @param[in] lev the mesh-refinement level
+     * @param[in,out] cost pointer to (load balancing) cost corresponding to box where present particles are ionized.
+     * @param[in,out] species1,species2,species3 reference to species container used to inject
+     * new particles
+     * @param t current time
+     *
+     */
+    void doBackgroundDissociation (
+                                 int lev,
+                                 amrex::LayoutData<amrex::Real>* cost,
+                                 WarpXParticleContainer** speciesList, 
+                                 int* num_added_vec, 
+                                 int num_species,
+                                 amrex::Real t
+                                 );
+
 private:
 
     amrex::Vector<ScatteringProcess> m_scattering_processes;
@@ -76,6 +95,12 @@ private:
     amrex::Gpu::DeviceVector<ScatteringProcess::Executor> m_scattering_processes_exe;
     amrex::Gpu::DeviceVector<ScatteringProcess::Executor> m_ionization_processes_exe;
     amrex::Gpu::DeviceVector<ScatteringProcess::Executor> m_dissociation_processes_exe;
+    
+    // Vectors of size m_num_product_species storing how many particles of a given species are
+    // produced by a collision event. These vectors are duplicated (one version for host and one
+    // for device) which is necessary with GPUs but redundant on CPU.
+    amrex::Gpu::DeviceVector<int> m_num_products_device;
+    amrex::Gpu::HostVector<int> m_num_products_host;
 
     bool init_flag = false;
     bool ionization_flag = false;
