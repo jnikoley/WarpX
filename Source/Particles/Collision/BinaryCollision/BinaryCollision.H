@@ -731,15 +731,6 @@ public:
                         p_pair_reaction_weight, engine);
                 }
             );
-            amrex::ParallelForRNG(n_total_pairs,
-                [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
-                {
-                    if (p_mask[i]>1)
-                    {
-                        p_mask[i]=1;
-                    }
-                }
-            );
             // Create the new product particles and define their initial values
             // num_added: how many particles of each product species have been created
             const amrex::Vector<int> num_added = m_copy_transform_functor(n_total_pairs,

@@ -36,6 +36,9 @@ DSMCFunc::DSMCFunc (
         const std::string kw_cross_section = scattering_process + "_cross_section";
         std::string cross_section_file;
         pp_collision_name.query(kw_cross_section.c_str(), cross_section_file);
+        bool log_log_interpolation = false;
+        const std::string kw_cross_section_log = scattering_process + "_cross_section_log";
+        pp_collision_name.query(kw_cross_section_log.c_str(),log_log_interpolation);
 
         // if the scattering process is excitation or ionization get the
         // energy associated with that process
@@ -46,8 +49,8 @@ DSMCFunc::DSMCFunc (
             utils::parser::getWithParser(
                 pp_collision_name, kw_energy.c_str(), energy);
         }
-        // TODO: update this for loglog-interpolation
-        ScatteringProcess process(scattering_process, cross_section_file, energy,false);
+        
+        ScatteringProcess process(scattering_process, cross_section_file, energy, log_log_interpolation);
 
         WARPX_ALWAYS_ASSERT_WITH_MESSAGE(process.type() != ScatteringProcessType::INVALID,
                                         "Cannot add an unknown scattering process type");

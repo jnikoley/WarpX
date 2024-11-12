@@ -16,6 +16,7 @@
 #include "Particles/MultiParticleContainer.H"
 #include "Particles/WarpXParticleContainer.H"
 #include "Particles/Collision/BinaryCollision/Recombination.H"
+#include "Particles/Collision/BinaryCollision/Dissociation.H"
 
 #include <AMReX_DenseBins.H>
 #include <AMReX_GpuAtomic.H>
@@ -115,7 +116,15 @@ public:
 
         // Compute offset array and allocate memory for the produced species
         amrex::Gpu::DeviceVector<index_type> offsets(n_total_pairs);
-        const auto total = amrex::Scan::ExclusiveSum(n_total_pairs, p_mask, offsets.data());
+        index_type* AMREX_RESTRICT offsets_data = offsets.data();
+        // The following is used to calculate the appropriate offsets. Note that
+        // a standard cummulative sum is not appropriate since the mask is also
+        // used to specify the type of collision and can therefore have values >1
+        auto const total = amrex::Scan::PrefixSum<index_type>(n_total_pairs,
+            [=] AMREX_GPU_DEVICE (index_type i) -> index_type { return p_mask[i] ? 1 : 0; },
+            [=] AMREX_GPU_DEVICE (index_type i, index_type s) { offsets_data[i] = s; },
+            amrex::Scan::Type::exclusive, amrex::Scan::retSum
+        );
         const index_type* AMREX_RESTRICT p_offsets = offsets.dataPtr();
         amrex::Vector<int> num_added_vec(m_num_product_species);
         for (int i = 0; i < m_num_product_species; i++)
@@ -209,6 +218,14 @@ public:
                     const index_type product_start_index = products_np_data[0] + 2*p_offsets[i]*
                                                            p_num_products_device[0];
                     RecombinationInitializeMomentum(soa_1, soa_2, soa_products_data[0],
+                                                        p_pair_indices_1[i], p_pair_indices_2[i],
+                                                        product_start_index, m1, m2, engine);
+                }
+                else if (t_collision_type == CollisionType::Dissociation)
+                {
+                    const index_type product_start_index = products_np_data[0] + 2*p_offsets[i]*
+                                                           p_num_products_device[0];
+                    DissociationInitializeMomentum(soa_1, soa_2, soa_products_data[0],
                                                         p_pair_indices_1[i], p_pair_indices_2[i],
                                                         product_start_index, m1, m2, engine);
                 }
