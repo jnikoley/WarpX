@@ -76,7 +76,7 @@ public:
         // calculate standard deviation in neutral velocity distribution using
         // the local temperature
         // Divide by two since this velocity will be shared by the two neutrals
-        const ParticleReal bg_vel_std = m_sqrt_kb_m * std::sqrt(m_T_a_func(x, y, z, m_t) / 2.0_prt);
+        const ParticleReal bg_vel_std = m_sqrt_kb_m * std::sqrt(m_T_a_func(x, y, z, m_t));
 
         // get references to the original particle's velocity
         auto& ux = src.m_rdata[PIdx::ux][i_src];
@@ -100,13 +100,13 @@ public:
 
         // electron only loses the penalty cost
         // each electron gets half the energy (could change this later)
-        const auto E_out = static_cast<amrex::ParticleReal>((E_coll - m_energy_cost) / 2.0_prt * PhysConst::q_e);
+        const auto E_out = static_cast<amrex::ParticleReal>((E_coll - m_energy_cost) * PhysConst::q_e);
 
         // precalculate often used value
         constexpr auto c2 = PhysConst::c * PhysConst::c;
         const auto mc2 = m_mass1*c2;
 
-        const amrex::ParticleReal up = 2.0_prt*sqrt(E_out * (E_out + 2.0_prt*mc2) / c2) / m_mass1;
+        const amrex::ParticleReal up = sqrt(E_out * (E_out + 2.0_prt*mc2) / c2) / m_mass1;
 
         // isotropically scatter electrons
         ParticleUtils::RandomizeVelocity(ux, uy, uz, up, engine);

@@ -153,8 +153,9 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
 
             std::string secondary_species;
             pp_collision_name.get("ionization_species", secondary_species);
+            m_ioniziation_name_idx = static_cast<int>(m_species_names.size());
             m_species_names.push_back(secondary_species);
-
+            
             m_ionization_processes.push_back(std::move(process));
         } else if (process.type() == ScatteringProcessType::DISSOCIATION){
             // m_species_names should already have the source particle in it 
@@ -172,6 +173,7 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
                 auto it = std::find(m_species_names.begin(), m_species_names.end(), source_species);
                 if (it == m_species_names.end()) {
                     // If not found, add to destination
+                    m_dissociation_name_idx = static_cast<int>(m_species_names.size());
                     m_species_names.push_back(source_species);
                     m_num_products_host.push_back(1); // Add a new count for this item
                     #ifndef AMREX_USE_GPU
@@ -200,6 +202,8 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
             for (int i=0; i<m_species_names.size();i++){
                 std::cout<<m_species_names[i]<<": "<<m_num_products_host[i]<<std::endl;
             }
+            std::cout<<m_dissociation_name_idx<<" "<<m_species_names[m_dissociation_name_idx]<<std::endl;
+            std::cout<<m_ioniziation_name_idx<<" "<<m_species_names[m_ioniziation_name_idx]<<std::endl;
 
             dissociation_flag = true;
             m_dissociation_processes.push_back(std::move(process));
@@ -304,7 +308,7 @@ BackgroundMCCCollision::doCollisions (amrex::Real cur_time, amrex::Real dt, Mult
     // defined in the scope of doCollisions
     auto& species2 = (
                       (m_species_names.size() >= 2) ?
-                      mypc->GetParticleContainerFromName(m_species_names[1]) :
+                      mypc->GetParticleContainerFromName(m_species_names[m_ioniziation_name_idx]) :
                       mypc->GetParticleContainerFromName(m_species_names[0])
                       );
     // this is a very ugly hack to have species2 be a reference and be
@@ -681,7 +685,7 @@ void BackgroundMCCCollision::doBackgroundDissociation
         auto wt = static_cast<amrex::Real>(amrex::second());
 
         auto& elec_tile = speciesList[0]->ParticlesAt(lev, pti);
-        auto& ion_tile = speciesList[1]->ParticlesAt(lev, pti);
+        auto& ion_tile = speciesList[m_dissociation_name_idx]->ParticlesAt(lev, pti);
         //auto& neutral_tile = species3.ParticlesAt(lev, pti);
 
         const auto np_elec = elec_tile.numParticles();
@@ -694,7 +698,7 @@ void BackgroundMCCCollision::doBackgroundDissociation
                                                        );
 
 
-        const auto num_added = filterCopyTransformParticles<2>(*speciesList[1],ion_tile,
+        const auto num_added = filterCopyTransformParticles<2>(*speciesList[m_dissociation_name_idx],ion_tile,
         elec_tile,np_ion, Filter, copy_vect[1], Transform);
 
         setNewParticleIDs(ion_tile, np_ion, num_added);

@@ -108,6 +108,9 @@ private:
 
     amrex::ParticleReal m_mass1;
 
+    int m_ioniziation_name_idx = 0;
+    int m_dissociation_name_idx = 0;
+
     amrex::ParticleReal m_max_background_density = 0;
     amrex::ParticleReal m_background_mass;
     amrex::ParticleReal m_total_collision_prob;
