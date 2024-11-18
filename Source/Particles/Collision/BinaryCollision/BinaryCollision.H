@@ -25,6 +25,7 @@
 #include "Utils/ParticleUtils.H"
 #include "Utils/TextMsg.H"
 #include "Utils/WarpXAlgorithmSelection.H"
+#include "Utils/Algorithms/IsIn.H"
 #include "WarpX.H"
 
 #include "Particles/MultiParticleContainer_fwd.H"
@@ -109,6 +110,25 @@ public:
         // Therefore, we insert the colliding species at the beginning of `m_product_species`
         if (collision_type == CollisionType::DSMC) {
             m_product_species.insert( m_product_species.begin(), m_species_names.begin(), m_species_names.end() );
+        }
+
+        if (collision_type == CollisionType::Ionization){
+            // we need to filter for uniques
+            amrex::Vector<std::string> temp_products;
+            for (int i=0; i<m_product_species.size(); i++){
+                if (utils::algorithms::is_in(temp_products, m_product_species[i])){
+                    m_product_species.erase(std::find(m_product_species.begin(),
+                    m_product_species.end(),m_product_species[i]));
+                }
+                else{
+                    temp_products.push_back(m_product_species[i]);
+                }
+            }
+            m_product_species=temp_products;
+            for (const auto i : m_product_species){
+                std::cout<<i<<std::endl;
+            }
+
         }
         m_have_product_species = !m_product_species.empty();
 
@@ -745,6 +765,7 @@ public:
 
             for (int i = 0; i < n_product_species; i++)
             {
+                //std::cout<< product_species_vector[i]->getSpeciesTypeName() <<": "<<products_np[i]<<"\t"<<products_mass[i]<<std::endl;
                 setNewParticleIDs(*(tile_products_data[i]), static_cast<int>(products_np[i]), num_added[i]);
             }
 

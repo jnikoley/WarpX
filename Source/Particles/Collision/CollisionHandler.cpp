@@ -50,13 +50,7 @@ CollisionHandler::CollisionHandler(MultiParticleContainer const * const mypc)
                     collision_names[i], mypc
                 );
         }
-        else if (type == "recombination"){
-            allcollisions[i] = 
-                std::make_unique<BinaryCollision<DSMCFunc, ParticleCreationFunc>>(
-                    collision_names[i], mypc
-                );
-        }
-        else if (type == "dissociation"){
+        else if (type == "recombination" || type == "dissociation" || type == "ionization"){
             allcollisions[i] = 
                 std::make_unique<BinaryCollision<DSMCFunc, ParticleCreationFunc>>(
                     collision_names[i], mypc

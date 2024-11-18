@@ -17,6 +17,7 @@
 #include "Particles/WarpXParticleContainer.H"
 #include "Particles/Collision/BinaryCollision/Recombination.H"
 #include "Particles/Collision/BinaryCollision/Dissociation.H"
+#include "Particles/Collision/BinaryCollision/Ionization.H"
 
 #include <AMReX_DenseBins.H>
 #include <AMReX_GpuAtomic.H>
@@ -175,6 +176,9 @@ public:
         const int* AMREX_RESTRICT p_num_products_device = m_num_products_device.data();
         const CollisionType t_collision_type = m_collision_type;
 
+        const index_type local_index_unionized_product = m_index_unionized_product; // copy that can be passed to device
+        const amrex::ParticleReal local_energy_penalty = m_energy_penalty * PhysConst::q_e; // copy that can be passed to device
+
         amrex::ParallelForRNG(n_total_pairs,
         [=] AMREX_GPU_DEVICE (int i, amrex::RandomEngine const& engine) noexcept
         {
@@ -228,6 +232,35 @@ public:
                     DissociationInitializeMomentum(soa_1, soa_2, soa_products_data[0],
                                                         p_pair_indices_1[i], p_pair_indices_2[i],
                                                         product_start_index, m1, m2, engine);
+                }
+                else if (t_collision_type == CollisionType::Ionization)
+                {   
+                    
+                    const index_type product_start_index0 = (products_np_data[0] + 2*p_offsets[i]*
+                                                        p_num_products_device[0]);
+                    const index_type product_start_index1 = (products_np_data[1] + 2*p_offsets[i]*
+                                                        p_num_products_device[1]); 
+                    if (t_num_product_species==2){
+                        IonizationInitializeMomentum(soa_1, soa_2, soa_products_data,
+                                                p_pair_indices_1[i], p_pair_indices_2[i],
+                                                product_start_index0, product_start_index1, 
+                                                local_index_unionized_product, m1, m2,
+                                                products_mass_data, local_energy_penalty, engine
+                                                );
+                    }
+                    if (t_num_product_species==3){
+                    
+                        const index_type product_start_index2 = (products_np_data[2] + 2*p_offsets[i]*
+                                                        p_num_products_device[2]);                                                     
+                        IonizationInitializeMomentum(soa_1, soa_2, soa_products_data,
+                                                p_pair_indices_1[i], p_pair_indices_2[i],
+                                                product_start_index0, product_start_index1, product_start_index2,
+                                                local_index_unionized_product, m1, m2,
+                                                products_mass_data, local_energy_penalty, engine
+                                                );
+                    }
+                    
+                    
                 }
                 else if ((t_collision_type == CollisionType::DeuteriumTritiumToNeutronHeliumFusion)
                       || (t_collision_type == CollisionType::DeuteriumDeuteriumToProtonTritiumFusion)
@@ -289,6 +322,9 @@ private:
     amrex::Gpu::DeviceVector<int> m_num_products_device;
     amrex::Gpu::HostVector<int> m_num_products_host;
     CollisionType m_collision_type;
+    // need to track which product is unaffected in the ionization process
+    int m_index_unionized_product = -1; 
+    amrex::ParticleReal m_energy_penalty;
 };
 
 
