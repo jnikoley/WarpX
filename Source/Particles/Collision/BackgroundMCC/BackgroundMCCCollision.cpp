@@ -199,12 +199,7 @@ BackgroundMCCCollision::BackgroundMCCCollision (std::string const& collision_nam
                                     m_num_products_device.begin());
                 amrex::Gpu::streamSynchronize();
             #endif
-            for (int i=0; i<m_species_names.size();i++){
-                std::cout<<m_species_names[i]<<": "<<m_num_products_host[i]<<std::endl;
-            }
-            std::cout<<m_dissociation_name_idx<<" "<<m_species_names[m_dissociation_name_idx]<<std::endl;
-            std::cout<<m_ioniziation_name_idx<<" "<<m_species_names[m_ioniziation_name_idx]<<std::endl;
-
+            
             dissociation_flag = true;
             m_dissociation_processes.push_back(std::move(process));
 

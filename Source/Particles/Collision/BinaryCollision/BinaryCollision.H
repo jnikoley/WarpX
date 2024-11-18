@@ -125,9 +125,6 @@ public:
                 }
             }
             m_product_species=temp_products;
-            for (const auto i : m_product_species){
-                std::cout<<i<<std::endl;
-            }
 
         }
         m_have_product_species = !m_product_species.empty();
@@ -765,7 +762,6 @@ public:
 
             for (int i = 0; i < n_product_species; i++)
             {
-                //std::cout<< product_species_vector[i]->getSpeciesTypeName() <<": "<<products_np[i]<<"\t"<<products_mass[i]<<std::endl;
                 setNewParticleIDs(*(tile_products_data[i]), static_cast<int>(products_np[i]), num_added[i]);
             }
 
