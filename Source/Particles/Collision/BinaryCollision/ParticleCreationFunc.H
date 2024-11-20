@@ -19,6 +19,7 @@
 #include "Particles/Collision/BinaryCollision/Dissociation.H"
 #include "Particles/Collision/BinaryCollision/Ionization.H"
 
+#include <AMReX.H>
 #include <AMReX_DenseBins.H>
 #include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuDevice.H>
@@ -227,11 +228,32 @@ public:
                 }
                 else if (t_collision_type == CollisionType::Dissociation)
                 {
-                    const index_type product_start_index = products_np_data[0] + 2*p_offsets[i]*
-                                                           p_num_products_device[0];
-                    DissociationInitializeMomentum(soa_1, soa_2, soa_products_data[0],
-                                                        p_pair_indices_1[i], p_pair_indices_2[i],
-                                                        product_start_index, m1, m2, engine);
+                    const index_type product_start_index0 = (products_np_data[0] + 2*p_offsets[i]*
+                                                        p_num_products_device[0]);
+                    const index_type product_start_index1 = (products_np_data[1] + 2*p_offsets[i]*
+                                                        p_num_products_device[1]); 
+                    if (t_num_product_species==2){
+                        // something like e + H2 -> H + H + e
+                    
+                        DissociationInitializeMomentum2Prod(soa_1, soa_2, soa_products_data,
+                                                            p_pair_indices_1[i], p_pair_indices_2[i],
+                                                            product_start_index0, product_start_index1, 
+                                                            local_index_unionized_product,
+                                                            m1, m2, products_mass_data,
+                                                            local_energy_penalty, engine);
+                    } else if (t_num_product_species==3){
+                        // something like e + H2+ -> H + H+ + e
+                        const index_type product_start_index2 = (products_np_data[2] + 2*p_offsets[i]*
+                                                        p_num_products_device[2]); 
+                        DissociationInitializeMomentum3Prod(soa_1, soa_2, soa_products_data,
+                                                            p_pair_indices_1[i], p_pair_indices_2[i],
+                                                            product_start_index0, product_start_index1, 
+                                                            product_start_index2,
+                                                            local_index_unionized_product,
+                                                            m1, m2, products_mass_data,
+                                                            local_energy_penalty, engine);
+                    }
+
                 }
                 else if (t_collision_type == CollisionType::Ionization)
                 {   
@@ -247,8 +269,7 @@ public:
                                                 local_index_unionized_product, m1, m2,
                                                 products_mass_data, local_energy_penalty, engine
                                                 );
-                    }
-                    if (t_num_product_species==3){
+                    } else if (t_num_product_species==3){
                     
                         const index_type product_start_index2 = (products_np_data[2] + 2*p_offsets[i]*
                                                         p_num_products_device[2]);                                                     

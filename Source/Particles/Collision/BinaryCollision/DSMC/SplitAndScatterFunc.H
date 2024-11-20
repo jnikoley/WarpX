@@ -202,6 +202,9 @@ public:
                     else {
                         amrex::Abort("Uneven mass charge-exchange not implemented yet.");
                     }
+                    
+                } else if (mask[i] == int(ScatteringProcessType::EXCITATION)){
+                        amrex::Abort("DSMC Excitiation not implemented yet.");
                 }
                 else {
                     amrex::Abort("Unknown scattering process.");

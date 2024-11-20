@@ -112,7 +112,7 @@ public:
             m_product_species.insert( m_product_species.begin(), m_species_names.begin(), m_species_names.end() );
         }
 
-        if (collision_type == CollisionType::Ionization){
+        if ((collision_type == CollisionType::Ionization)||(collision_type == CollisionType::Dissociation)){
             // we need to filter for uniques
             amrex::Vector<std::string> temp_products;
             for (int i=0; i<m_product_species.size(); i++){

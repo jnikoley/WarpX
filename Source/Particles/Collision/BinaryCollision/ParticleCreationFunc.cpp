@@ -48,23 +48,17 @@ ParticleCreationFunc::ParticleCreationFunc (const std::string& collision_name,
         //m_num_products_device.push_back(1);
 #endif
     }
-    else if (m_collision_type == CollisionType::Dissociation)
-    {
-        // Recombination only produces the recombined atom
-        m_num_product_species = 2; // could be more...
-        m_num_products_host.push_back(2);
-        m_num_products_host.push_back(1);
-#ifndef AMREX_USE_GPU
-        // On CPU, the device vector can be filled immediately
-        m_num_products_device.push_back(2);
-        m_num_products_device.push_back(1);
-#endif
-    }
-    else if (m_collision_type == CollisionType::Ionization)
+    else if ((m_collision_type == CollisionType::Ionization)||
+           (m_collision_type == CollisionType::Dissociation))
     {
         // x + y -> x + y+ + e but if x==e then only 2 products
         // otherwise is like: H + H -> H+ + e + H
-        pp_collision_name.query("ionization_energy",m_energy_penalty);
+        if (m_collision_type == CollisionType::Dissociation){
+            pp_collision_name.query("dissociation_energy",m_energy_penalty);
+        } else if (m_collision_type == CollisionType::Ionization){
+            pp_collision_name.query("ionization_energy",m_energy_penalty);
+        }
+        
 
         amrex::Vector<std::string> species;
         pp_collision_name.queryarr("species",species);

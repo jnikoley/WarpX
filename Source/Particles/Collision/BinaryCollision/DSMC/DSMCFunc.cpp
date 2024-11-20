@@ -44,7 +44,8 @@ DSMCFunc::DSMCFunc (
         // energy associated with that process
         amrex::ParticleReal energy = 0._prt;
         if (scattering_process.find("excitation") != std::string::npos ||
-            scattering_process.find("ionization") != std::string::npos) {
+            scattering_process.find("ionization") != std::string::npos ||
+            scattering_process.find("dissociation") != std::string::npos ) {
             const std::string kw_energy = scattering_process + "_energy";
             utils::parser::getWithParser(
                 pp_collision_name, kw_energy.c_str(), energy);
