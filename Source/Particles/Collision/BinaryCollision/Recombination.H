@@ -72,6 +72,11 @@ namespace {
         soa_product.m_rdata[PIdx::uy][idx_product_start] = (py1 + py2)/(m1 + m2);
         soa_product.m_rdata[PIdx::uz][idx_product_start] = (pz1 + pz2)/(m1 + m2);
 
+        //Fill momentum of product species (note that we actually
+        // create 2 products, 2 at the position of each incident particle)
+        soa_product.m_rdata[PIdx::ux][idx_product_start + 1] = soa_product.m_rdata[PIdx::ux][idx_product_start];
+        soa_product.m_rdata[PIdx::uy][idx_product_start + 1] = soa_product.m_rdata[PIdx::uy][idx_product_start];
+        soa_product.m_rdata[PIdx::uz][idx_product_start + 1] = soa_product.m_rdata[PIdx::uz][idx_product_start];
     }
 
 }

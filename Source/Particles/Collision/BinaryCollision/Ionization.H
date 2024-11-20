@@ -145,7 +145,24 @@ namespace {
         
         ParticleUtils::RandomizeVelocity(uxprode,uyprode,uzprode,uprodc,engine);
 
+        // Force both this index and the next to have the same momentum
+        // This is because DSMC creates two particles
+        soa_products[idx_unchanged_product].m_rdata[PIdx::ux][idx_prod_unchanged + 2] = uxprod0;
+        soa_products[idx_unchanged_product].m_rdata[PIdx::uy][idx_prod_unchanged + 2] = uyprod0;
+        soa_products[idx_unchanged_product].m_rdata[PIdx::uz][idx_prod_unchanged + 2] = uzprod0;
 
+        // These two can be randomized separately
+        auto& uxprode2 = soa_products[idx_unchanged_product].m_rdata[PIdx::ux][idx_prod_unchanged + 3];
+        auto& uyprode2 = soa_products[idx_unchanged_product].m_rdata[PIdx::uy][idx_prod_unchanged + 3];
+        auto& uzprode2 = soa_products[idx_unchanged_product].m_rdata[PIdx::uz][idx_prod_unchanged + 3];
+        auto& uxproda2 = soa_products[idx_a].m_rdata[PIdx::ux][idx_prod_a + 1];
+        auto& uyproda2 = soa_products[idx_a].m_rdata[PIdx::uy][idx_prod_a + 1];
+        auto& uzproda2 = soa_products[idx_a].m_rdata[PIdx::uz][idx_prod_a + 1];
+
+
+        ParticleUtils::RandomizeVelocity(uxproda2,uyproda2,uzproda2,uproda,engine);
+        
+        ParticleUtils::RandomizeVelocity(uxprode2,uyprode2,uzprode2,uprodc,engine);
 
     }
 
@@ -282,6 +299,29 @@ namespace {
         ParticleUtils::RandomizeVelocity(uxprodb,uyprodb,uzprodb,uprodb,engine);
         ParticleUtils::RandomizeVelocity(uxprode,uyprode,uzprode,uprodc,engine);
 
+
+        // Force both this index and the next to have the same momentum
+        // This is because DSMC creates two particles
+        soa_products[idx_unchanged_product].m_rdata[PIdx::ux][idx_prod_unchanged + 2] = uxprod0;
+        soa_products[idx_unchanged_product].m_rdata[PIdx::uy][idx_prod_unchanged + 2] = uyprod0;
+        soa_products[idx_unchanged_product].m_rdata[PIdx::uz][idx_prod_unchanged + 2] = uzprod0;
+
+        // These two can be randomized separately
+        auto& uxprode2 = soa_products[idx_unchanged_product].m_rdata[PIdx::ux][idx_prod_unchanged + 3];
+        auto& uyprode2 = soa_products[idx_unchanged_product].m_rdata[PIdx::uy][idx_prod_unchanged + 3];
+        auto& uzprode2 = soa_products[idx_unchanged_product].m_rdata[PIdx::uz][idx_prod_unchanged + 3];
+        auto& uxproda2 = soa_products[idx_a].m_rdata[PIdx::ux][idx_prod_a + 1];
+        auto& uyproda2 = soa_products[idx_a].m_rdata[PIdx::uy][idx_prod_a + 1];
+        auto& uzproda2 = soa_products[idx_a].m_rdata[PIdx::uz][idx_prod_a + 1];
+        auto& uxprodb2 = soa_products[idx_b].m_rdata[PIdx::ux][idx_prod_b + 1];
+        auto& uyprodb2 = soa_products[idx_b].m_rdata[PIdx::uy][idx_prod_b + 1];
+        auto& uzprodb2 = soa_products[idx_b].m_rdata[PIdx::uz][idx_prod_b + 1];
+    
+
+        ParticleUtils::RandomizeVelocity(uxproda2,uyproda2,uzproda2,uproda,engine);
+        ParticleUtils::RandomizeVelocity(uxprodb2,uyprodb2,uzprodb2,uprodb,engine);
+        ParticleUtils::RandomizeVelocity(uxprode2,uyprode2,uzprode2,uprodc,engine);
+        
 
 
     }
