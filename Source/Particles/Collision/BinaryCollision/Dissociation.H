@@ -131,7 +131,9 @@ namespace {
         ParticleUtils::getEnergy(u2, m1, Eout);
 
         Eout = ((Eout * PhysConst::q_e) - energy_cost)  / product_mass[idx_a];
-        
+        if (Eout<0){
+            Eout=0; // This occasionally does happen. Likely because of precision errors
+        }
         const amrex::ParticleReal uprod0 =  sqrt((2.0_prt* c2 * Eout) + (Eout*Eout))/PhysConst::c;
 
         // randomize the direction of both of the dissociation causing particles
@@ -260,10 +262,13 @@ namespace {
             amrex::Abort("3 Particle Dissociation does not conserve mass");
         }
         amrex::ParticleReal Eout;
-        ParticleUtils::getEnergy(u2, m1, Eout);
+        amrex::ParticleReal Ein;
+        ParticleUtils::getEnergy(u2, m1, Ein);
 
-        Eout = ((Eout * PhysConst::q_e) - energy_cost)  / product_mass[idx_a];
-        
+        Eout = ((Ein * PhysConst::q_e) - energy_cost)  / product_mass[idx_a];
+        if (Eout<0){
+            Eout=0; // This occasionally does happen. Likely because of precision errors
+        }
         const amrex::ParticleReal uprod0 =  sqrt((2.0_prt* c2 * Eout) + (Eout*Eout))/PhysConst::c;
 
         // randomize the direction of both of the dissociation causing particles
