@@ -2386,7 +2386,9 @@ class MCCCollisions(picmistandard.base._ClassWithInit):
         self.scattering_processes = scattering_processes
         self.max_background_density = max_background_density
         self.ndt = ndt
-
+        self.product_species = None
+        if 'product_species' in kw:
+            self.product_species = kw.pop('product_species')
         self.handle_init(kw)
 
     def collision_initialize_inputs(self):
@@ -2408,12 +2410,19 @@ class MCCCollisions(picmistandard.base._ClassWithInit):
         collision.background_mass = self.background_mass
         collision.max_background_density = self.max_background_density
         collision.ndt = self.ndt
-
+        if self.product_species is not None:
+            if isinstance(self.product_species,list):
+                collision.product_species = [x.name for x in self.product_species]
+            else:
+                collision.product_species = self.product_species.name
         collision.scattering_processes = self.scattering_processes.keys()
         for process, kw in self.scattering_processes.items():
             for key, val in kw.items():
                 if key == "species":
-                    val = val.name
+                    if isinstance(val,list):
+                        val = [x.name for x in val]
+                    else:
+                        val = val.name
                 collision.add_new_attr(process + "_" + key, val)
 
 
@@ -2436,27 +2445,40 @@ class DSMCCollisions(picmistandard.base._ClassWithInit):
 
     ndt: integer, optional
         The collisions will be applied every "ndt" steps. Must be 1 or larger.
+        
+    inttype: string, optional
+        The collision type. Default is 'dsmc'
     """
 
-    def __init__(self, name, species, scattering_processes, ndt=None, **kw):
+    def __init__(self, name, species, scattering_processes, ndt=None, inttype='dsmc', **kw):
         self.name = name
         self.species = species
         self.scattering_processes = scattering_processes
         self.ndt = ndt
-
+        self.inttype = inttype
+        self.product_species = None
+        if 'product_species' in kw:
+            self.product_species = kw.pop('product_species')
         self.handle_init(kw)
 
     def collision_initialize_inputs(self):
         collision = pywarpx.Collisions.newcollision(self.name)
-        collision.type = "dsmc"
+        collision.type = self.inttype
         collision.species = [species.name for species in self.species]
         collision.ndt = self.ndt
-
+        if self.product_species is not None:
+            if isinstance(self.product_species,list):
+                collision.product_species = [x.name for x in self.product_species]
+            else:
+                collision.product_species = self.product_species.name
         collision.scattering_processes = self.scattering_processes.keys()
         for process, kw in self.scattering_processes.items():
             for key, val in kw.items():
                 if key == "species":
-                    val = val.name
+                    if isinstance(val,list):
+                        val = [x.name for x in val]
+                    else:
+                        val = val.name
                 collision.add_new_attr(process + "_" + key, val)
 
 
