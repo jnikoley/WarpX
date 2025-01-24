@@ -162,13 +162,9 @@ public:
     HybridPICModel& GetHybridPICModel () { return *m_hybrid_pic_model; }
     [[nodiscard]] HybridPICModel * get_pointer_HybridPICModel () const { return m_hybrid_pic_model.get(); }
     MultiDiagnostics& GetMultiDiags () {return *multi_diags;}
-#ifdef AMREX_USE_EB
-    ablastr::fields::MultiLevelScalarField GetDistanceToEB () {
-        using warpx::fields::FieldType;
-        return m_fields.get_mr_levels(FieldType::distance_to_eb, finestLevel());
-    }
-#endif
+
     ParticleBoundaryBuffer& GetParticleBoundaryBuffer () { return *m_particle_boundary_buffer; }
+    amrex::Vector<std::array< std::unique_ptr<amrex::iMultiFab>,3 > >& GetEBUpdateEFlag() { return m_eb_update_E; }
 
     static void shiftMF (amrex::MultiFab& mf, const amrex::Geometry& geom,
                          int num_shift, int dir, int lev, bool update_cost_flag,
@@ -397,7 +393,6 @@ public:
     //! Specifies the type of grid used for the above sorting, i.e. cell-centered, nodal, or mixed
     static amrex::IntVect sort_idx_type;
 
-    static bool do_subcycling;
     static bool do_multi_J;
     static int do_multi_J_n_depositions;
 
@@ -908,6 +903,8 @@ public:
 
     // Magnetostatic Solver Interface
     MagnetostaticSolver::VectorPoissonBoundaryHandler m_vector_poisson_boundary_handler;
+    int magnetostatic_solver_max_iters = 200;
+    int magnetostatic_solver_verbosity = 2;
     void ComputeMagnetostaticField ();
     void AddMagnetostaticFieldLabFrame ();
     void computeVectorPotential (ablastr::fields::MultiLevelVectorField const& curr,
@@ -932,20 +929,17 @@ public:
      * \param[in] fx_parser parser function to initialize x-field
      * \param[in] fy_parser parser function to initialize y-field
      * \param[in] fz_parser parser function to initialize z-field
-     * \param[in] edge_lengths edge lengths information
-     * \param[in] face_areas face areas information
-     * \param[in] topology flag indicating if field is edge-based or face-based
      * \param[in] lev level of the Multifabs that is initialized
      * \param[in] patch_type PatchType on which the field is initialized (fine or coarse)
+     * \param[in] eb_update_field flag indicating which gridpoints should be modified by this functions
      */
     void ComputeExternalFieldOnGridUsingParser (
         warpx::fields::FieldType field,
         amrex::ParserExecutor<4> const& fx_parser,
         amrex::ParserExecutor<4> const& fy_parser,
         amrex::ParserExecutor<4> const& fz_parser,
-        int lev, PatchType patch_type, [[maybe_unused]] char topology,
-        std::optional<ablastr::fields::VectorField> const& edge_lengths = std::nullopt,
-        std::optional<ablastr::fields::VectorField> const& face_areas = std::nullopt);
+        int lev, PatchType patch_type,
+        amrex::Vector<std::array< std::unique_ptr<amrex::iMultiFab>,3 > > const& eb_update_field);
 
     /**
      * \brief Load field values from a user-specified openPMD file,
@@ -1019,6 +1013,53 @@ public:
     void InitEB ();
 
 #ifdef AMREX_USE_EB
+    /** \brief Set a flag to indicate on which grid points the field `field`
+     *  should be updated, depending on their position relative to the embedded boundary.
+     *
+     * This function is used by all finite-difference solvers, except the
+     * ECT solver, which instead uses `MarkUpdateECellsECT` and `MarkUpdateBCellsECT`.
+     * It uses a stair-case approximation of the embedded boundary:
+     * If a grid point touches cells that are either partially or fully covered
+     * by the embedded boundary: the corresponding field is not updated.
+     *
+     * More specifically, this function fills the iMultiFabs in `eb_update`
+     * (which have the same indexType as the MultiFabs in `field`) with 1
+     * or 0, depending on whether the grid point should be updated or not.
+     */
+    void MarkUpdateCellsStairCase (
+        std::array< std::unique_ptr<amrex::iMultiFab>,3> & eb_update,
+        ablastr::fields::VectorField const & field,
+        amrex::EBFArrayBoxFactory const & eb_fact );
+
+    /** \brief Set a flag to indicate on which grid points the E field
+     *  should be updated, depending on their position relative to the embedded boundary.
+     *
+     * This function is used by ECT solver. The E field is not updated if
+     * the edge on which it is defined is fully covered by the embedded boundary.
+     *
+     * More specifically, this function fills the iMultiFabs in `eb_update_E`
+     * (which have the same indexType as the E field) with 1 or 0, depending
+     * on whether the grid point should be updated or not.
+     */
+    void MarkUpdateECellsECT (
+        std::array< std::unique_ptr<amrex::iMultiFab>,3> & eb_update_E,
+        ablastr::fields::VectorField const& edge_lengths );
+
+    /** \brief Set a flag to indicate on which grid points the B field
+     *  should be updated, depending on their position relative to the embedded boundary.
+     *
+     * This function is used by ECT solver. The B field is not updated if
+     * the face on which it is defined is fully covered by the embedded boundary.
+     *
+     * More specifically, this function fills the iMultiFabs in `eb_update_B`
+     * (which have the same indexType as the B field) with 1 or 0, depending
+     * on whether the grid point should be updated or not.
+     */
+    void MarkUpdateBCellsECT (
+        std::array< std::unique_ptr<amrex::iMultiFab>,3> & eb_update_B,
+        ablastr::fields::VectorField const& face_areas,
+        ablastr::fields::VectorField const& edge_lengths );
+
     /**
     * \brief Compute the length of the mesh edges. Here the length is a value in [0, 1].
     *        An edge of length 0 is fully covered.
@@ -1050,7 +1091,7 @@ public:
     *          - 2 for stable cells which have been intruded
     *        Here we cannot know if a cell is intruded or not so we initialize all stable cells with 1
     */
-    void MarkCells();
+    void MarkExtensionCells();
 #endif
 
     /**
@@ -1316,18 +1357,6 @@ private:
     }
 
     /**
-     * \brief Re-orders the Fornberg coefficients so that they can be used more conveniently for
-     * finite-order centering operations. For example, for finite-order centering of order 6,
-     * the Fornberg coefficients \c (c_0,c_1,c_2) are re-ordered as \c (c_2,c_1,c_0,c_0,c_1,c_2).
-     *
-     * \param[in,out] ordered_coeffs host vector where the re-ordered Fornberg coefficients will be stored
-     * \param[in] unordered_coeffs host vector storing the original sequence of Fornberg coefficients
-     * \param[in] order order of the finite-order centering along a given direction
-     */
-    void ReorderFornbergCoefficients (amrex::Vector<amrex::Real>& ordered_coeffs,
-                                      amrex::Vector<amrex::Real>& unordered_coeffs,
-                                      int order);
-    /**
      * \brief Allocates and initializes the stencil coefficients used for the finite-order centering
      * of fields and currents, and stores them in the given device vectors.
      *
@@ -1399,17 +1428,23 @@ private:
     mutable amrex::Vector<std::array< std::unique_ptr<amrex::iMultiFab>,3 > > Afield_dotMask;
     mutable amrex::Vector<            std::unique_ptr<amrex::iMultiFab>     > phi_dotMask;
 
+    /** EB: Flag to indicate whether a gridpoint is inside the embedded boundary and therefore
+     * whether the E or B should not be updated. (One array per level and per direction, due to staggering)
+     */
+    amrex::Vector<std::array< std::unique_ptr<amrex::iMultiFab>,3 > > m_eb_update_E;
+    amrex::Vector<std::array< std::unique_ptr<amrex::iMultiFab>,3 > > m_eb_update_B;
+
     /** EB: for every mesh face flag_info_face contains a:
      *          * 0 if the face needs to be extended
      *          * 1 if the face is large enough to lend area to other faces
      *          * 2 if the face is actually intruded by other face
-     * It is initialized in WarpX::MarkCells
+     * It is initialized in WarpX::MarkExtensionCells
      * This is only used for the ECT solver.*/
     amrex::Vector<std::array< std::unique_ptr<amrex::iMultiFab>, 3 > > m_flag_info_face;
     /** EB: for every mesh face face flag_ext_face contains a:
      *          * 1 if the face needs to be extended
      *          * 0 otherwise
-     * It is initialized in WarpX::MarkCells and then modified in WarpX::ComputeOneWayExtensions
+     * It is initialized in WarpX::MarkExtensionCells and then modified in WarpX::ComputeOneWayExtensions
      * and in WarpX::ComputeEightWaysExtensions
      * This is only used for the ECT solver.*/
     amrex::Vector<std::array< std::unique_ptr<amrex::iMultiFab>, 3 > > m_flag_ext_face;
@@ -1458,6 +1493,9 @@ private:
     // Timestepping parameters
     std::optional<amrex::Real> m_const_dt;
     std::optional<amrex::Real> m_max_dt;
+
+    // whether to use subcycling
+    bool m_do_subcycling = false;
 
     // Macroscopic properties
     std::unique_ptr<MacroscopicProperties> m_macroscopic_properties;
